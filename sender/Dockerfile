@@ -9,11 +9,10 @@ RUN go mod download && go mod verify
 
 COPY /src .
 
-RUN CGO_ENABLED=0 go build -o server
+RUN CGO_ENABLED=0 go build -o sender
 
 FROM scratch
 
-COPY --from=build /app/server /server
-COPY version.txt .
+COPY --from=build /app/sender /sender
 
-ENTRYPOINT ["/server"]
+ENTRYPOINT ["/sender"]
