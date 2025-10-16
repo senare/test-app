@@ -33,7 +33,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 5a. Build and push test-app (multi-arch)
+      # 5a. Copy version.txt into app folders
+      - name: Copy version.txt into build contexts
+        run: |
+          cp version.txt test-app/version.txt
+          cp version.txt test-app-sender/version.txt
+
+      # 5b. Build and push test-app (multi-arch)
       - name: Build and push test-app
         uses: docker/build-push-action@v4
         with:
@@ -44,7 +50,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/test-app:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/test-app:${{ env.VERSION }}
 
-      # 5b. Build and push test-app-sender (multi-arch)
+      # 5c. Build and push test-app-sender (multi-arch)
       - name: Build and push test-app-sender
         uses: docker/build-push-action@v4
         with:
