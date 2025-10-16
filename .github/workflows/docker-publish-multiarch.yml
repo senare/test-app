@@ -1,0 +1,56 @@
+name: Build and Push Multi-Arch Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Read version from version.txt
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(cat version.txt | tr -d '[:space:]')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # 3. Set up Docker Buildx (multi-arch)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4. Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5a. Build and push test-app (multi-arch)
+      - name: Build and push test-app
+        uses: docker/build-push-action@v4
+        with:
+          context: ./test-app
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/test-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/test-app:${{ env.VERSION }}
+
+      # 5b. Build and push test-app-sender (multi-arch)
+      - name: Build and push test-app-sender
+        uses: docker/build-push-action@v4
+        with:
+          context: ./test-app-sender
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/test-app-sender:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/test-app-sender:${{ env.VERSION }}
