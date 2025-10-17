@@ -13,8 +13,14 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
+)
+
+var (
+	tcpCount uint64
+	udpCount uint64
 )
 
 type LogEntry struct {
@@ -100,7 +106,10 @@ func handleTCPConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		data := scanner.Bytes()
-		logEntry("TCP", raddr, data)
+		
+		atomic.AddUint64(&tcpCount, 1)
+		count := atomic.LoadUint64(&tcpCount)
+		logEntry(fmt.Sprintf("TCP[%d]", count), raddr, data)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("TCP read error from %s: %v", raddr, err)
@@ -129,7 +138,10 @@ func startUDPServer(addr string) {
 			}
 			data := make([]byte, n)
 			copy(data, buf[:n])
-			logEntry("UDP", remote.String(), data)
+
+			atomic.AddUint64(&udpCount, 1)
+			count := atomic.LoadUint64(&udpCount)
+			logEntry(fmt.Sprintf("UDP[%d]", count), remote.String(), data)
 		}
 	}()
 }
