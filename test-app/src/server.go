@@ -49,8 +49,13 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func logHTTPRequests(next http.Handler) http.Handler {
+func logHTTPRequests(next http.Handler, disableHealthLog bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if disableHealthLog && r.URL.Path == "/healthz" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		entry := LogEntry{
 			Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 			Proto:     "HTTP",
@@ -172,6 +177,8 @@ func debugEcho(w http.ResponseWriter, r *http.Request) {
 func main() {
 	log.SetFlags(0)
 
+	disableHealthLog := os.Getenv("DISABLE_HEALTH_LOG") == "true"
+
 	httpMux := http.NewServeMux()
 	httpMux.HandleFunc("/", debugEcho)
 	httpMux.HandleFunc("/healthz", getHealth)
@@ -179,7 +186,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:    ":8080",
-		Handler: logHTTPRequests(httpMux),
+		Handler: logHTTPRequests(httpMux, disableHealthLog),
 	}
 
 	startTCPServer(":9000")
